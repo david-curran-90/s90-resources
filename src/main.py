@@ -46,24 +46,25 @@ class resources:
     def outputAsTable(self, data):
         try:
             for p in data.items:
-                for c in p.spec.containers:
-                    r = c.resources
-                    reqMem = r.requests['memory'] if isinstance(r.requests, dict) else "none"
-                    reqCpu = r.requests['cpu'] if isinstance(r.requests, dict) else "none"
-                    limMem = r.limits['memory'] if isinstance(r.limits, dict) else "none"
-                    limCpu = r.limits['cpu'] if isinstance(r.limits, dict) else "none"
-                    currentUsage = self.getCurrentResourceMetrics(p.metadata.name, c.name)
-                    logging.info(f"Adding row to table for {self.namespace}/{p.metadata.name}/{c.name}")
+                if p.status.phase == "Running":
+                    for c in p.spec.containers:
+                        r = c.resources
+                        reqMem = r.requests['memory'] if isinstance(r.requests, dict) else "none"
+                        reqCpu = r.requests['cpu'] if isinstance(r.requests, dict) else "none"
+                        limMem = r.limits['memory'] if isinstance(r.limits, dict) else "none"
+                        limCpu = r.limits['cpu'] if isinstance(r.limits, dict) else "none"
+                        currentUsage = self.getCurrentResourceMetrics(p.metadata.name, c.name)
+                        logging.info(f"Adding row to table for {self.namespace}/{p.metadata.name}/{c.name}")
 
-                    memRequestHigh = self.checkRequestSetting(int(float(currentUsage['memory'].strip('Mi').strip('G'))), int(reqMem.strip('Mi').strip('G'))) if reqMem != "none" else False
-                    cpuRequestHigh = self.checkRequestSetting(int(currentUsage['cpu'].strip('m')), int(reqCpu.strip('m'))) if reqCpu != "none" else False
-                    memColour = Fore.RED if memRequestHigh else Fore.GREEN
-                    cpuColour = Fore.RED if cpuRequestHigh else Fore.GREEN
+                        memRequestHigh = self.checkRequestSetting(int(float(currentUsage['memory'].strip('Mi').strip('G'))), int(reqMem.strip('Mi').strip('G'))) if reqMem != "none" else False
+                        cpuRequestHigh = self.checkRequestSetting(int(currentUsage['cpu'].strip('m')), int(reqCpu.strip('m'))) if reqCpu != "none" else False
+                        memColour = Fore.RED if memRequestHigh else Fore.GREEN
+                        cpuColour = Fore.RED if cpuRequestHigh else Fore.GREEN
 
-                    if (self.lowusage and (memRequestHigh or cpuRequestHigh)) or not self.lowusage:
-                        self.outputTable.add_row([self.namespace, p.metadata.name, c.name,
-                                    f"{memColour}{currentUsage['memory']}{Style.RESET_ALL}", reqMem, limMem,
-                                    f"{cpuColour}{currentUsage['cpu']}{Style.RESET_ALL}", reqCpu, limCpu])
+                        if (self.lowusage and (memRequestHigh or cpuRequestHigh)) or not self.lowusage:
+                            self.outputTable.add_row([self.namespace, p.metadata.name, c.name,
+                                        f"{memColour}{currentUsage['memory']}{Style.RESET_ALL}", reqMem, limMem,
+                                        f"{cpuColour}{currentUsage['cpu']}{Style.RESET_ALL}", reqCpu, limCpu])
             print(self.outputTable)
         except Exception as te:
             print(f"Type Error:\n\t{te}")
